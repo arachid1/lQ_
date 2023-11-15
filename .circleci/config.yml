@@ -1,0 +1,52 @@
+version: 2.1
+
+################# ORB #################
+orbs:
+  # See the orb documentation here: https://circleci.com/developer/orbs/orb/circleci/python
+  python: circleci/python@2.1.1
+
+################# Arguments to the pip install #################
+pip_install_block: &pip_install_block
+  pkg-manager: pip
+  args: .
+
+################# Command to run tests #################
+run_tests_cmd: &run_tests_cmd
+  command: |
+    cd test/test_scripts
+    TESTCLASSES=$(circleci tests glob "test*.py" | sed -e 's/.py//' | circleci tests split)
+    python -m unittest $TESTCLASSES -v
+
+################# WORKFLOWS #################
+workflows:
+  build_and_test:
+    jobs:
+      - build-and-code-check:
+          filters:
+            tags:
+              only: /.*/
+      - run-tests:
+          filters:
+            tags:
+              only: /.*/
+
+################# JOBS #################
+jobs:
+  # Build the repo and check the code 
+  build-and-code-check:
+    docker:
+      - image: python:3.9
+    steps:
+      - checkout
+      - python/install-packages:
+          <<: *pip_install_block
+  run-tests:
+    docker:
+      - image: python:3.9
+    steps:
+      - checkout
+      - python/install-packages:
+          <<: *pip_install_block
+      - run:
+          name: run tests in Python 3.9
+          command: cd ~/project; python test/run_all_tests.py 
